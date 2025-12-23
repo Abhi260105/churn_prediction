@@ -4,9 +4,22 @@ DATA PROCESSING LOG
 
 Input File: data\raw\telco_churn.csv
 Output File: data\processed\churn_processed.csv
-Processing Date: 2025-12-23 16:00:37
+Processing Date: 2025-12-23 16:04:03
 
 PROCESSING STEPS:
 ----------------------------------------------------------------------
-1. [16:00:37] Load: Loaded 7,043 records with 21 columns
-2. [16:00:37] Remove Leakage: Dropped 'customerID' (identifier only, no predictive value)
+1. [16:04:03] Load: Loaded 7,043 records with 21 columns
+2. [16:04:03] Remove Leakage: Dropped 'customerID' (identifier only, no predictive value)
+3. [16:04:03] Missing Values: Filled 14 TotalCharges for existing customers with median: Rs1761.16
+4. [16:04:03] Missing Values: Reduced missing values: 0 → 0
+5. [16:04:03] Data Types: Converted Churn: ['No', 'Yes'] → [0, 1]
+6. [16:04:03] Data Types: Converted 4 Yes/No columns to binary (0/1): Partner, Dependents, PhoneService, PaperlessBilling
+7. [16:04:03] Data Types: Ensured numeric type for: tenure, MonthlyCharges, TotalCharges
+
+======================================================================
+FINAL STATISTICS:
+----------------------------------------------------------------------
+Total Records: 7,043
+Total Features: 20
+Churn Rate: 33.51%
+Missing Values: 0

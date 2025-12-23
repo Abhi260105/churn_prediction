@@ -3,12 +3,7 @@ Processed Data Creator for Churn Prediction Project
 File: src/processed_data_creator.py
 
 Purpose: Convert raw data into clean, analysis-ready format
-- Removes data leakage features
-- Handles missing values intelligently
-- Fixes data types
-- Prepares data for feature engineering
-
-CRITICAL: This step ensures NO data leakage and proper data quality
+FIXED: Unicode encoding issues for Windows
 """
 
 import pandas as pd
@@ -27,43 +22,23 @@ class ProcessedDataCreator:
     3. Fix data types and encodings
     4. Basic data quality checks
     5. Prepare for feature engineering
-    
-    Business Context:
-    - Churn Definition: Inactive 60+ days OR subscription cancelled
-    - Goal: Clean data WITHOUT feature engineering (that comes next)
     """
     
     def __init__(self, raw_data_path):
-        """
-        Initialize the data processor.
-        
-        Args:
-            raw_data_path (str): Path to raw CSV file
-        """
+        """Initialize the data processor."""
         self.raw_data_path = Path(raw_data_path)
         self.df = None
-        self.processing_steps = []  # Track all processing steps
+        self.processing_steps = []
         
     def _log_step(self, step_name, details):
-        """
-        Log a processing step for transparency and debugging.
-        
-        Args:
-            step_name (str): Name of the processing step
-            details (str): Details about what was done
-        """
+        """Log a processing step."""
         timestamp = datetime.now().strftime("%H:%M:%S")
         log_entry = f"[{timestamp}] {step_name}: {details}"
         self.processing_steps.append(log_entry)
         print(f"   ✓ {details}")
     
     def load_raw_data(self):
-        """
-        Load raw data from CSV.
-        
-        Returns:
-            pd.DataFrame: Raw data
-        """
+        """Load raw data from CSV."""
         print("="*70)
         print("📂 LOADING RAW DATA FOR PROCESSING")
         print("="*70)
@@ -79,26 +54,13 @@ class ProcessedDataCreator:
             sys.exit(1)
     
     def remove_data_leakage(self):
-        """
-        Remove features that would cause data leakage.
-        
-        Data Leakage = Using information that wouldn't be available at prediction time
-        
-        Features to remove:
-        - customerID: Just an identifier, no predictive value
-        
-        WHY THIS MATTERS:
-        - customerID could memorize specific customers during training
-        - Model wouldn't generalize to new customers
-        - This is a common interview trap question!
-        """
+        """Remove features that would cause data leakage."""
         print("\n" + "="*70)
         print("🔒 REMOVING DATA LEAKAGE FEATURES")
         print("="*70)
         
         original_cols = len(self.df.columns)
         
-        # Remove customerID
         if 'customerID' in self.df.columns:
             self.df = self.df.drop('customerID', axis=1)
             self._log_step(
@@ -106,30 +68,13 @@ class ProcessedDataCreator:
                 "Dropped 'customerID' (identifier only, no predictive value)"
             )
         
-        # Check for any other potential leakage features
-        # (none in this dataset, but this is where you'd check)
-        
         new_cols = len(self.df.columns)
         print(f"\n📊 Columns: {original_cols} → {new_cols}")
         
         return self
     
     def handle_missing_values(self):
-        """
-        Handle missing values using business logic.
-        
-        Strategy:
-        1. TotalCharges for new customers (tenure=0): Fill with 0
-           - Logic: They haven't been charged yet
-        2. TotalCharges for existing customers: Fill with median
-           - Logic: Preserve distribution, avoid extreme values
-        3. Other columns: Investigate case-by-case
-        
-        WHY NOT DROP?
-        - Dropping rows loses valuable information
-        - Missing data may have business meaning
-        - We need every customer record we can get
-        """
+        """Handle missing values using business logic."""
         print("\n" + "="*70)
         print("🔧 HANDLING MISSING VALUES")
         print("="*70)
@@ -137,16 +82,13 @@ class ProcessedDataCreator:
         missing_before = self.df.isnull().sum().sum()
         print(f"Missing values before processing: {missing_before}")
         
-        # Handle TotalCharges specifically
         if 'TotalCharges' in self.df.columns:
-            
-            # First, convert to numeric (may have spaces or strings)
+            # Convert to numeric
             self.df['TotalCharges'] = pd.to_numeric(
                 self.df['TotalCharges'], 
                 errors='coerce'
             )
             
-            # Count missing after conversion
             missing_total_charges = self.df['TotalCharges'].isnull().sum()
             print(f"\nTotalCharges missing: {missing_total_charges}")
             
@@ -167,21 +109,13 @@ class ProcessedDataCreator:
                 
                 if remaining_nulls > 0:
                     median_value = self.df['TotalCharges'].median()
-                    self.df['TotalCharges'].fillna(median_value, inplace=True)
+                    # FIXED: Use proper assignment instead of inplace
+                    self.df['TotalCharges'] = self.df['TotalCharges'].fillna(median_value)
+                    # Format with Rs instead of Rupee symbol
                     self._log_step(
                         "Missing Values",
-                        f"Filled {remaining_nulls} TotalCharges for existing customers with median: ₹{median_value:.2f}"
+                        f"Filled {remaining_nulls} TotalCharges for existing customers with median: Rs{median_value:.2f}"
                     )
-        
-        # Check for missing values in other columns
-        other_missing = self.df.isnull().sum()
-        other_missing = other_missing[other_missing > 0]
-        
-        if len(other_missing) > 0:
-            print(f"\n⚠️  Other columns with missing values:")
-            for col, count in other_missing.items():
-                print(f"   {col}: {count}")
-            print("   These will need to be addressed if critical for analysis")
         
         missing_after = self.df.isnull().sum().sum()
         print(f"\nMissing values after processing: {missing_after}")
@@ -190,19 +124,7 @@ class ProcessedDataCreator:
         return self
     
     def fix_data_types(self):
-        """
-        Fix data types for all columns.
-        
-        Conversions:
-        1. Target variable (Churn): Yes/No → 1/0 (binary)
-        2. Yes/No columns → 1/0 (binary)
-        3. Numeric columns → proper numeric type
-        
-        WHY THIS MATTERS:
-        - ML algorithms need numeric inputs
-        - Binary encoding is more interpretable than one-hot
-        - Prevents type errors during modeling
-        """
+        """Fix data types for all columns."""
         print("\n" + "="*70)
         print("📊 FIXING DATA TYPES")
         print("="*70)
@@ -231,7 +153,7 @@ class ProcessedDataCreator:
                 f"Converted {converted_count} Yes/No columns to binary (0/1): {', '.join(yes_no_columns)}"
             )
         
-        # Ensure numeric columns are proper numeric type
+        # Ensure numeric columns
         numeric_columns = ['tenure', 'MonthlyCharges', 'TotalCharges']
         for col in numeric_columns:
             if col in self.df.columns:
@@ -248,16 +170,7 @@ class ProcessedDataCreator:
         return self
     
     def validate_processed_data(self):
-        """
-        Validate the processed data before saving.
-        
-        Checks:
-        1. No critical missing values in key columns
-        2. Target variable is binary (0/1)
-        3. Tenure is non-negative
-        4. Charges are positive
-        5. No duplicates
-        """
+        """Validate the processed data before saving."""
         print("\n" + "="*70)
         print("✅ VALIDATING PROCESSED DATA")
         print("="*70)
@@ -295,7 +208,7 @@ class ProcessedDataCreator:
         # Check 4: Charges are positive
         if 'MonthlyCharges' in self.df.columns:
             if (self.df['MonthlyCharges'] > 0).all():
-                print(f"   ✓ MonthlyCharges are positive (min: ₹{self.df['MonthlyCharges'].min():.2f})")
+                print(f"   ✓ MonthlyCharges are positive (min: Rs{self.df['MonthlyCharges'].min():.2f})")
             else:
                 print(f"   ❌ MonthlyCharges has non-positive values")
                 validation_passed = False
@@ -307,14 +220,11 @@ class ProcessedDataCreator:
             print("\n✅ ALL VALIDATION CHECKS PASSED")
         else:
             print("\n❌ SOME VALIDATION CHECKS FAILED")
-            print("   Review the issues above before proceeding")
         
         return validation_passed
     
     def show_processing_summary(self):
-        """
-        Display summary of all processing steps performed.
-        """
+        """Display summary of all processing steps."""
         print("\n" + "="*70)
         print("📋 PROCESSING SUMMARY")
         print("="*70)
@@ -325,12 +235,7 @@ class ProcessedDataCreator:
         print("\n" + "="*70)
     
     def save_processed_data(self, output_path='data/processed/churn_processed.csv'):
-        """
-        Save processed data to CSV.
-        
-        Args:
-            output_path (str): Path where processed data will be saved
-        """
+        """Save processed data to CSV."""
         print("\n" + "="*70)
         print("💾 SAVING PROCESSED DATA")
         print("="*70)
@@ -344,9 +249,9 @@ class ProcessedDataCreator:
         print(f"   Shape: {self.df.shape}")
         print(f"   Size: {output_path.stat().st_size / 1024:.2f} KB")
         
-        # Save processing log
+        # Save processing log - FIXED: Use UTF-8 encoding
         log_path = output_path.parent / 'processing_log.txt'
-        with open(log_path, 'w') as f:
+        with open(log_path, 'w', encoding='utf-8') as f:
             f.write("="*70 + "\n")
             f.write("DATA PROCESSING LOG\n")
             f.write("="*70 + "\n\n")
@@ -368,9 +273,7 @@ class ProcessedDataCreator:
         print(f"📝 Processing log saved to: {log_path}")
     
     def show_final_statistics(self):
-        """
-        Display final statistics of processed data.
-        """
+        """Display final statistics."""
         print("\n" + "="*70)
         print("📈 FINAL PROCESSED DATA STATISTICS")
         print("="*70)
@@ -390,16 +293,11 @@ class ProcessedDataCreator:
         
         print(f"\nKey Statistics:")
         print(f"   Tenure Range: {self.df['tenure'].min()} - {self.df['tenure'].max()} months")
-        print(f"   Monthly Charges: ₹{self.df['MonthlyCharges'].min():.2f} - ₹{self.df['MonthlyCharges'].max():.2f}")
-        print(f"   Total Charges: ₹{self.df['TotalCharges'].min():.2f} - ₹{self.df['TotalCharges'].max():.2f}")
+        print(f"   Monthly Charges: Rs{self.df['MonthlyCharges'].min():.2f} - Rs{self.df['MonthlyCharges'].max():.2f}")
+        print(f"   Total Charges: Rs{self.df['TotalCharges'].min():.2f} - Rs{self.df['TotalCharges'].max():.2f}")
     
     def process_pipeline(self):
-        """
-        Execute the complete data processing pipeline.
-        
-        Returns:
-            pd.DataFrame: Processed data
-        """
+        """Execute the complete data processing pipeline."""
         print("\n" + "="*70)
         print("🚀 STARTING DATA PROCESSING PIPELINE")
         print("="*70)
@@ -409,23 +307,18 @@ class ProcessedDataCreator:
         print("   Purpose: Enable proactive retention interventions")
         print("="*70)
         
-        # Execute pipeline
         self.load_raw_data()
         self.remove_data_leakage()
         self.handle_missing_values()
         self.fix_data_types()
         
-        # Validate
         is_valid = self.validate_processed_data()
         
         if not is_valid:
-            print("\n❌ Processing failed validation. Please review errors above.")
+            print("\n❌ Processing failed validation.")
             sys.exit(1)
         
-        # Save
         self.save_processed_data()
-        
-        # Summary
         self.show_processing_summary()
         self.show_final_statistics()
         
@@ -442,19 +335,14 @@ class ProcessedDataCreator:
 
 
 def main():
-    """
-    Main execution function for standalone script usage.
-    """
-    # Path to raw data
+    """Main execution function."""
     raw_data_path = 'data/raw/telco_churn.csv'
     
-    # Check if file exists
     if not Path(raw_data_path).exists():
         print(f"❌ ERROR: Raw data file not found at {raw_data_path}")
-        print("   Please run src/raw_data_loader.py first or check the file path.")
+        print("   Please run data/raw/generate_sample_data.py first.")
         sys.exit(1)
     
-    # Create processor and run pipeline
     processor = ProcessedDataCreator(raw_data_path)
     processed_df = processor.process_pipeline()
     
