@@ -1,0 +1,12 @@
+======================================================================
+DATA PROCESSING LOG
+======================================================================
+
+Input File: data\raw\telco_churn.csv
+Output File: data\processed\churn_processed.csv
+Processing Date: 2025-12-23 16:00:37
+
+PROCESSING STEPS:
+----------------------------------------------------------------------
+1. [16:00:37] Load: Loaded 7,043 records with 21 columns
+2. [16:00:37] Remove Leakage: Dropped 'customerID' (identifier only, no predictive value)

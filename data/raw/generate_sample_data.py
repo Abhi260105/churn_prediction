@@ -1,12 +1,8 @@
 """
-Sample Telco Churn Data Generator
+Sample Telco Churn Data Generator - FIXED VERSION
 File: data/raw/generate_sample_data.py
 
 Purpose: Generate realistic telecom customer churn dataset
-- Creates 7,000+ customer records
-- Realistic churn patterns based on industry behavior
-- Includes all required features for analysis
-
 Run this FIRST to create the telco_churn.csv file
 """
 
@@ -17,12 +13,6 @@ from pathlib import Path
 def generate_telco_churn_data(n_samples=7043, random_state=42):
     """
     Generate realistic telecom customer churn dataset.
-    
-    Business Scenario:
-    - Telecom company with phone and internet services
-    - Multiple service add-ons (streaming, security, etc.)
-    - Different contract types and payment methods
-    - Goal: Predict which customers will churn
     
     Args:
         n_samples (int): Number of customer records to generate
@@ -55,14 +45,21 @@ def generate_telco_churn_data(n_samples=7043, random_state=42):
     # ==========================================
     # 3. TENURE (Critical for churn prediction)
     # ==========================================
-    # Realistic distribution: Many new, some mid-term, fewer long-term
-    tenure_new = np.random.exponential(12, int(n_samples * 0.40))      # 0-12 months
-    tenure_mid = np.random.uniform(12, 36, int(n_samples * 0.30))      # 1-3 years
-    tenure_loyal = np.random.uniform(36, 72, int(n_samples * 0.30))    # 3-6 years
+    # Fixed: Ensure we get exactly n_samples
+    n_new = int(n_samples * 0.40)
+    n_mid = int(n_samples * 0.30)
+    n_loyal = n_samples - n_new - n_mid  # This ensures exact total
+    
+    tenure_new = np.random.exponential(12, n_new)
+    tenure_mid = np.random.uniform(12, 36, n_mid)
+    tenure_loyal = np.random.uniform(36, 72, n_loyal)
     
     tenure = np.concatenate([tenure_new, tenure_mid, tenure_loyal])
     tenure = np.clip(tenure, 0, 72).astype(int)
     np.random.shuffle(tenure)
+    
+    # Verify shape
+    assert len(tenure) == n_samples, f"Tenure length mismatch: {len(tenure)} != {n_samples}"
     
     # ==========================================
     # 4. PHONE SERVICES
@@ -84,22 +81,22 @@ def generate_telco_churn_data(n_samples=7043, random_state=42):
         p=[0.34, 0.44, 0.22]
     )
     
-    # Internet-dependent services (only if customer has internet)
-    def internet_dependent_service(service_prob_yes):
-        """Helper to create internet-dependent service column"""
+    # Internet-dependent services
+    def create_internet_service(prob_yes):
+        """Helper to create internet-dependent service"""
         service = np.where(
             internet_service != 'No',
-            np.random.choice(['Yes', 'No'], n_samples, p=[service_prob_yes, 1-service_prob_yes]),
+            np.random.choice(['Yes', 'No'], n_samples, p=[prob_yes, 1-prob_yes]),
             'No internet service'
         )
         return service
     
-    online_security = internet_dependent_service(0.29)
-    online_backup = internet_dependent_service(0.34)
-    device_protection = internet_dependent_service(0.34)
-    tech_support = internet_dependent_service(0.29)
-    streaming_tv = internet_dependent_service(0.38)
-    streaming_movies = internet_dependent_service(0.39)
+    online_security = create_internet_service(0.29)
+    online_backup = create_internet_service(0.34)
+    device_protection = create_internet_service(0.34)
+    tech_support = create_internet_service(0.29)
+    streaming_tv = create_internet_service(0.38)
+    streaming_movies = create_internet_service(0.39)
     
     # ==========================================
     # 6. CONTRACT AND BILLING
@@ -120,34 +117,40 @@ def generate_telco_churn_data(n_samples=7043, random_state=42):
     ], n_samples, p=[0.34, 0.23, 0.22, 0.21])
     
     # ==========================================
-    # 7. CHARGES (Realistic pricing model)
+    # 7. CHARGES (FIXED - Realistic pricing model)
     # ==========================================
     
     # Base charge
-    base_charge = 20
+    base_charge = 20.0
     monthly_charges = np.full(n_samples, base_charge, dtype=float)
     
     # Add service charges
-    monthly_charges += (phone_service == 'Yes') * 15
-    monthly_charges += (multiple_lines == 'Yes') * 10
-    monthly_charges += (internet_service == 'DSL') * 30
-    monthly_charges += (internet_service == 'Fiber optic') * 50
-    monthly_charges += (online_security == 'Yes') * 5
-    monthly_charges += (online_backup == 'Yes') * 5
-    monthly_charges += (device_protection == 'Yes') * 5
-    monthly_charges += (tech_support == 'Yes') * 5
-    monthly_charges += (streaming_tv == 'Yes') * 10
-    monthly_charges += (streaming_movies == 'Yes') * 10
+    monthly_charges += (phone_service == 'Yes').astype(int) * 15
+    monthly_charges += (multiple_lines == 'Yes').astype(int) * 10
+    monthly_charges += (internet_service == 'DSL').astype(int) * 30
+    monthly_charges += (internet_service == 'Fiber optic').astype(int) * 50
+    monthly_charges += (online_security == 'Yes').astype(int) * 5
+    monthly_charges += (online_backup == 'Yes').astype(int) * 5
+    monthly_charges += (device_protection == 'Yes').astype(int) * 5
+    monthly_charges += (tech_support == 'Yes').astype(int) * 5
+    monthly_charges += (streaming_tv == 'Yes').astype(int) * 10
+    monthly_charges += (streaming_movies == 'Yes').astype(int) * 10
     
     # Add realistic noise
     monthly_charges += np.random.normal(0, 5, n_samples)
     monthly_charges = np.clip(monthly_charges, 18.25, 118.75)
     monthly_charges = np.round(monthly_charges, 2)
     
-    # Total charges = monthly × tenure (with some variance)
-    total_charges = monthly_charges * tenure * np.random.uniform(0.95, 1.05, n_samples)
+    # FIXED: Total charges calculation
+    # Convert tenure to float to match monthly_charges type
+    tenure_float = tenure.astype(float)
+    
+    # Calculate with proper broadcasting
+    total_charges = monthly_charges * tenure_float * np.random.uniform(0.95, 1.05, n_samples)
     total_charges = np.round(total_charges, 2)
-    total_charges[tenure == 0] = 0  # New customers haven't been charged
+    
+    # New customers haven't been charged
+    total_charges[tenure == 0] = 0.0
     
     # ==========================================
     # 8. CHURN (TARGET VARIABLE - Realistic Logic)
@@ -159,22 +162,19 @@ def generate_telco_churn_data(n_samples=7043, random_state=42):
     churn_probability = np.full(n_samples, 0.15)
     
     # Factor 1: Tenure (new customers churn more)
-    churn_probability += np.where(tenure < 6, 0.25, 0)
-    churn_probability += np.where(tenure < 12, 0.15, 0)
-    churn_probability -= np.where(tenure > 24, 0.15, 0)
-    churn_probability -= np.where(tenure > 48, 0.10, 0)
+    churn_probability += (tenure < 6).astype(int) * 0.25
+    churn_probability += (tenure < 12).astype(int) * 0.15
+    churn_probability -= (tenure > 24).astype(int) * 0.15
+    churn_probability -= (tenure > 48).astype(int) * 0.10
     
     # Factor 2: Contract type (month-to-month highest risk)
-    churn_probability += np.where(contract == 'Month-to-month', 0.25, 0)
-    churn_probability -= np.where(contract == 'Two year', 0.20, 0)
+    churn_probability += (contract == 'Month-to-month').astype(int) * 0.25
+    churn_probability -= (contract == 'Two year').astype(int) * 0.20
     
     # Factor 3: Payment method (automatic = lower churn)
-    churn_probability += np.where(payment_method == 'Electronic check', 0.15, 0)
-    churn_probability -= np.where(
-        payment_method.astype(str).str.contains('automatic', case=False),
-        0.10,
-        0
-    )
+    churn_probability += (payment_method == 'Electronic check').astype(int) * 0.15
+    auto_payment = (payment_method == 'Bank transfer (automatic)') | (payment_method == 'Credit card (automatic)')
+    churn_probability -= auto_payment.astype(int) * 0.10
     
     # Factor 4: Service bundle (more services = lower churn)
     service_count = (
@@ -186,10 +186,10 @@ def generate_telco_churn_data(n_samples=7043, random_state=42):
     churn_probability -= service_count * 0.03
     
     # Factor 5: Price sensitivity (high charges increase churn)
-    churn_probability += np.where(monthly_charges > 80, 0.12, 0)
+    churn_probability += (monthly_charges > 80).astype(int) * 0.12
     
     # Factor 6: Internet service type (fiber = higher churn due to price)
-    churn_probability += np.where(internet_service == 'Fiber optic', 0.08, 0)
+    churn_probability += (internet_service == 'Fiber optic').astype(int) * 0.08
     
     # Factor 7: Senior citizens (slightly higher churn)
     churn_probability += senior_citizen * 0.05

@@ -1,0 +1,25 @@
+======================================================================
+RAW DATA VALIDATION REPORT
+======================================================================
+
+File: data\raw\telco_churn.csv
+Date: 2025-12-23 16:00:07.750661
+
+Total Records: 7,043
+Total Columns: 21
+
+VALIDATION RESULTS:
+----------------------------------------------------------------------
+
+1. Required Columns Check:
+   Present: 5
+   Missing: 0
+
+2. Churn Distribution:
+   Churn Rate: 33.51%
+
+3. Duplicate Records:
+   Duplicates Found: 0
+
+4. Missing Values:
+   No missing values detected
