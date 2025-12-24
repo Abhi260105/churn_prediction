@@ -1,0 +1,33 @@
+======================================================================
+CHURN PREDICTION - MODEL EVALUATION REPORT
+======================================================================
+
+BUSINESS COST ANALYSIS
+----------------------------------------------------------------------
+Cost Assumptions:
+  - False Negative: Rs5,000 (lost customer)
+  - False Positive: Rs500 (retention offer)
+
+
+LOGISTIC_REGRESSION:
+  Total Cost: Rs841,500
+  Cost per Customer: Rs597.23
+  False Negatives: 141
+  False Positives: 273
+
+XGBOOST:
+  Total Cost: Rs892,500
+  Cost per Customer: Rs633.43
+  False Negatives: 151
+  False Positives: 275
+
+======================================================================
+RECOMMENDATION
+----------------------------------------------------------------------
+Best Model: LOGISTIC_REGRESSION
+Reason: Lowest total business cost
+
+Next Steps:
+1. Deploy logistic_regression to production
+2. Set up monitoring for model drift
+3. Implement retention campaigns for high-risk customers
