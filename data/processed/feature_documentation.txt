@@ -1,0 +1,35 @@
+======================================================================
+FEATURE ENGINEERING DOCUMENTATION
+======================================================================
+
+Features Created:
+----------------------------------------------------------------------
+1. TenureGroup: New/Growing/Loyal based on tenure
+2. TenureGroup_Numeric: Numeric encoding of tenure groups
+3. IsNewCustomer: Binary flag for customers <=6 months
+4. IsLoyalCustomer: Binary flag for customers >=36 months
+5. TenureYears: Tenure converted to years
+6. ServiceCount: Total number of add-on services
+7. HasPremiumServices: Has security or backup services
+8. HasStreamingServices: Has TV or Movie streaming
+9. IsFullBundle: Has both phone and internet
+10. InternetType_Numeric: Numeric encoding of internet type
+11. ChargePerTenure: Average monthly charge (TotalCharges/tenure)
+12. IsHighCharges: Monthly charges > Rs100.91
+13. LowValuePerception: High charges but few services
+14. PaymentRiskFlag: Manual payment method (not automatic)
+15. IsMonthToMonth: Month-to-month contract (high churn risk)
+16. HasLongContract: Annual or biennial contract
+17. ChargeServiceRatio: Monthly charges per service
+18. ContractType_Numeric: Numeric encoding of contract type
+19. IsAutoPayment: Automatic payment method
+20. RiskScore: Composite risk score (0-11, higher=more risk)
+21. RiskCategory: Risk level: Low/Medium/High
+
+======================================================================
+Feature Categories:
+----------------------------------------------------------------------
+1. Tenure & Lifecycle: TenureGroup, IsNewCustomer, IsLoyalCustomer
+2. Usage Behavior: ServiceCount, HasPremiumServices, IsFullBundle
+3. Billing & Payment: ChargePerTenure, PaymentRiskFlag, IsMonthToMonth
+4. Risk Scoring: RiskScore, RiskCategory

@@ -81,11 +81,11 @@ class ChurnFeatureEngineering:
         
         # Feature 3: Is new customer (high risk)
         self.df['IsNewCustomer'] = (self.df['tenure'] <= 6).astype(int)
-        self._log_feature('IsNewCustomer', 'Binary flag for customers ≤6 months')
+        self._log_feature('IsNewCustomer', 'Binary flag for customers <=6 months')
         
         # Feature 4: Is loyal customer (low risk)
         self.df['IsLoyalCustomer'] = (self.df['tenure'] >= 36).astype(int)
-        self._log_feature('IsLoyalCustomer', 'Binary flag for customers ≥36 months')
+        self._log_feature('IsLoyalCustomer', 'Binary flag for customers >=36 months')
         
         # Feature 5: Tenure in years (easier interpretation)
         self.df['TenureYears'] = (self.df['tenure'] / 12).round(2)
@@ -168,7 +168,7 @@ class ChurnFeatureEngineering:
         # Feature 2: High charges flag (price sensitive segment)
         high_charge_threshold = self.df['MonthlyCharges'].quantile(0.75)
         self.df['IsHighCharges'] = (self.df['MonthlyCharges'] > high_charge_threshold).astype(int)
-        self._log_feature('IsHighCharges', f'Monthly charges > ₹{high_charge_threshold:.2f}')
+        self._log_feature('IsHighCharges', f'Monthly charges > Rs{high_charge_threshold:.2f}')
         
         # Feature 3: Low value perception (high charges, low services)
         self.df['LowValuePerception'] = (
@@ -354,7 +354,7 @@ class ChurnFeatureEngineering:
         
         # Save feature documentation
         doc_path = output_path.parent / 'feature_documentation.txt'
-        with open(doc_path, 'w') as f:
+        with open(doc_path, 'w', encoding='utf-8') as f:
             f.write("="*70 + "\n")
             f.write("FEATURE ENGINEERING DOCUMENTATION\n")
             f.write("="*70 + "\n\n")
