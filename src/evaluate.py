@@ -80,11 +80,36 @@ class ChurnModelEvaluator:
             self.feature_names = json.load(f)
         print(f"   ✓ Loaded: feature names ({len(self.feature_names)} features)")
         
-        # Load data (we'll use the full dataset and split again for consistency)
+        # Load data
         self.df = pd.read_csv(self.data_path)
         print(f"   ✓ Loaded: data ({len(self.df):,} records)")
         
+        # CRITICAL: Prepare features the same way as training
+        self._prepare_features()
+        
         return self
+    
+    def _prepare_features(self):
+        """Prepare features exactly as done during training"""
+        # Remove target and non-predictive columns
+        exclude_cols = ['Churn', 'TenureGroup', 'RiskCategory']
+        
+        # Get potential feature columns
+        feature_cols = [col for col in self.df.columns if col not in exclude_cols]
+        
+        # Handle categorical columns - encode them
+        categorical_cols = self.df[feature_cols].select_dtypes(include=['object']).columns.tolist()
+        
+        if categorical_cols:
+            for col in categorical_cols:
+                # Get dummies and drop first
+                dummies = pd.get_dummies(self.df[col], prefix=col, drop_first=True)
+                self.df = pd.concat([self.df, dummies], axis=1)
+                feature_cols.remove(col)
+                feature_cols.extend(dummies.columns.tolist())
+        
+        # Store processed feature columns
+        self.processed_feature_cols = [col for col in feature_cols if col in self.df.columns]
     
     def business_cost_analysis(self, fn_cost=5000, fp_cost=500):
         """
@@ -93,8 +118,8 @@ class ChurnModelEvaluator:
         THIS IS GOLD FOR INTERVIEWS!
         
         Costs:
-        - False Negative (missed churner): ₹5,000 (lost customer)
-        - False Positive (unnecessary offer): ₹500 (retention offer cost)
+        - False Negative (missed churner): Rs5,000 (lost customer)
+        - False Positive (unnecessary offer): Rs500 (retention offer cost)
         
         Args:
             fn_cost (int): Cost of false negative
@@ -105,13 +130,14 @@ class ChurnModelEvaluator:
         print("="*70)
         
         print(f"\n💵 Cost Assumptions:")
-        print(f"   False Negative (missed churner): ₹{fn_cost:,}")
-        print(f"   False Positive (wrong prediction): ₹{fp_cost:,}")
+        print(f"   False Negative (missed churner): Rs{fn_cost:,}")
+        print(f"   False Positive (wrong prediction): Rs{fp_cost:,}")
         print(f"   Rationale: Acquiring new customer costs 10x retention offer")
         
         # For each model, calculate costs
         from sklearn.model_selection import train_test_split
         
+        # Use the feature names that were saved during training
         X = self.df[self.feature_names]
         y = self.df['Churn']
         _, X_test, _, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
@@ -139,7 +165,7 @@ class ChurnModelEvaluator:
             total_cost = fn_total + fp_total
             cost_per_customer = total_cost / len(y_test)
             
-            print(f"{model_name:<20} {fn:<8} {fp:<8} ₹{total_cost:<14,} ₹{cost_per_customer:<14.2f}")
+            print(f"{model_name:<20} {fn:<8} {fp:<8} Rs{total_cost:<14,} Rs{cost_per_customer:<14.2f}")
             
             # Store results
             self.results[model_name] = {
@@ -154,14 +180,14 @@ class ChurnModelEvaluator:
         do_nothing_cost = total_churners * fn_cost
         
         print("\n" + "-"*70)
-        print(f"{'Do Nothing (baseline)':<20} {total_churners:<8} {0:<8} ₹{do_nothing_cost:<14,} ₹{do_nothing_cost/len(y_test):<14.2f}")
+        print(f"{'Do Nothing (baseline)':<20} {total_churners:<8} {0:<8} Rs{do_nothing_cost:<14,} Rs{do_nothing_cost/len(y_test):<14.2f}")
         
         # Show savings
         print(f"\n💡 Cost Savings vs Do-Nothing:")
         for model_name, results in self.results.items():
             savings = do_nothing_cost - results['total_cost']
             savings_pct = (savings / do_nothing_cost) * 100
-            print(f"   {model_name}: ₹{savings:,} ({savings_pct:.1f}% reduction)")
+            print(f"   {model_name}: Rs{savings:,} ({savings_pct:.1f}% reduction)")
         
         return self
     
@@ -338,7 +364,7 @@ class ChurnModelEvaluator:
                 best_threshold = threshold
         
         print(f"\n💡 Optimal Threshold: {best_threshold:.2f}")
-        print(f"   Minimizes total cost at: ₹{best_cost:,}")
+        print(f"   Minimizes total cost at: Rs{best_cost:,}")
         print(f"   (vs default 0.5 threshold)")
         
         return self
@@ -352,21 +378,21 @@ class ChurnModelEvaluator:
         report_path = Path('reports/model_performance.txt')
         report_path.parent.mkdir(parents=True, exist_ok=True)
         
-        with open(report_path, 'w') as f:
+        with open(report_path, 'w', encoding='utf-8') as f:
             f.write("="*70 + "\n")
             f.write("CHURN PREDICTION - MODEL EVALUATION REPORT\n")
             f.write("="*70 + "\n\n")
             
-            f.write("📊 BUSINESS COST ANALYSIS\n")
+            f.write("BUSINESS COST ANALYSIS\n")
             f.write("-"*70 + "\n")
             f.write(f"Cost Assumptions:\n")
-            f.write(f"  - False Negative: ₹5,000 (lost customer)\n")
-            f.write(f"  - False Positive: ₹500 (retention offer)\n\n")
+            f.write(f"  - False Negative: Rs5,000 (lost customer)\n")
+            f.write(f"  - False Positive: Rs500 (retention offer)\n\n")
             
             for model_name, results in self.results.items():
                 f.write(f"\n{model_name.upper()}:\n")
-                f.write(f"  Total Cost: ₹{results['total_cost']:,}\n")
-                f.write(f"  Cost per Customer: ₹{results['cost_per_customer']:.2f}\n")
+                f.write(f"  Total Cost: Rs{results['total_cost']:,}\n")
+                f.write(f"  Cost per Customer: Rs{results['cost_per_customer']:.2f}\n")
                 f.write(f"  False Negatives: {results['fn']}\n")
                 f.write(f"  False Positives: {results['fp']}\n")
             
